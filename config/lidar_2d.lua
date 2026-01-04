@@ -5,20 +5,20 @@ options = {
   map_builder = MAP_BUILDER,
   trajectory_builder = TRAJECTORY_BUILDER,
   map_frame = "map",
-  tracking_frame = "base_link",    -- 机器人底盘坐标系
-  published_frame = "base_link",   -- 因为没有里程计，直接把定位发给 base_link (纯雷达模式关键)
+  tracking_frame = "imu_link",    
+  published_frame = "odom",       
   odom_frame = "odom",
-  provide_odom_frame = true,       -- 算法内部提供里程计估算
+  provide_odom_frame = false,      
   publish_frame_projected_to_2d = false,
   use_pose_extrapolator = true,
-  use_odometry = false,            -- 【关键】没有轮式里程计，设为 false
+  use_odometry = true,            
   use_nav_sat = false,
   use_landmarks = false,
-  num_laser_scans = 1,             -- 使用 1 个雷达
+  num_laser_scans = 1,
   num_multi_echo_laser_scans = 0,
   num_subdivisions_per_laser_scan = 1,
   num_point_clouds = 0,
-  lookup_transform_timeout_sec = 0.2,
+  lookup_transform_timeout_sec = 1.0, 
   submap_publish_period_sec = 0.3,
   pose_publish_period_sec = 5e-3,
   trajectory_publish_period_sec = 30e-3,
@@ -30,21 +30,35 @@ options = {
 }
 
 MAP_BUILDER.use_trajectory_builder_2d = true
+MAP_BUILDER.num_background_threads = 6 
 
--- 【关键】关闭 IMU 数据，纯雷达建图必须关掉
-TRAJECTORY_BUILDER_2D.use_imu_data = false
-
--- 针对单雷达的参数优化
-TRAJECTORY_BUILDER_2D.min_range = 0.2
-TRAJECTORY_BUILDER_2D.max_range = 12.0   -- C1雷达最远12米，超过的不算
+TRAJECTORY_BUILDER_2D.use_imu_data = true
+TRAJECTORY_BUILDER_2D.min_range = 0.25      
+TRAJECTORY_BUILDER_2D.max_range = 12.0
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 5.0
+
+-- 【新增/修改点 1】强制原地更新地图：极其细微的动作也会触发建图
+TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = 0.01  -- 移动 1 厘米就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(0.1) -- 旋转 0.1 度就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.1      -- 强制 0.1 秒更新一次
+
+-- 【新增/修改点 2】提高障碍物插入信心：让雷达扫到的点更容易变“黑”
+TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.7
+TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.miss_probability = 0.4
+
+-- 【新增/修改点 3】减少数据堆叠：每一帧雷达数据都立刻参与建图
+TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 1
+
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true 
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.1
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.translation_delta_cost_weight = 10.
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_weight = 1e-1
 
+TRAJECTORY_BUILDER_2D.imu_gravity_time_constant = 9.8
+
+-- 【修改点 4】提高后端优化频率：让子图更快地拼接成完整地图
 POSE_GRAPH.optimization_problem.huber_scale = 1e2
-POSE_GRAPH.optimize_every_n_nodes = 35
+POSE_GRAPH.optimize_every_n_nodes = 10  -- 从 35 降到 10，让黑线出得更快
 POSE_GRAPH.constraint_builder.min_score = 0.65
 
 return options

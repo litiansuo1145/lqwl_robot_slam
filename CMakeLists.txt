@@ -22,12 +22,12 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-# --- 请复制下面这段代码 ---
+#安装目录
 install(DIRECTORY
   config
   launch
   DESTINATION share/${PROJECT_NAME}
 )
-# -----------------------
+
 
 ament_package()
