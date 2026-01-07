@@ -1,0 +1,101 @@
+amcl:
+  ros__parameters:
+    use_sim_time: False
+    robot_model_type: "nav2_amcl::OmniMotionModel" # 麦轮必须使用全向模型
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: "map"
+    robot_base_frame: "base_footprint"
+    odom_topic: "odom"
+    bt_loop_duration: 10
+    default_server_timeout: 20
+
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 20.0 # Jetson 性能强，跑 20Hz 保证丝滑
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+    controller_plugins: ["FollowPath"]
+
+    # 核心插件：旋转补偿 + DWB
+    FollowPath:
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      angular_dist_threshold: 0.785 # 大于45度先原地转，解决犹豫
+      rotate_to_heading_angular_vel: 0.8
+      max_angular_accel: 2.0
+      
+      # DWB 内部参数
+      min_vel_x: -0.10 # 允许在目标点附近小幅后退微调
+      min_vel_y: -0.15 # 开启麦轮横移
+      max_vel_x: 0.35
+      max_vel_y: 0.20
+      max_vel_theta: 1.0
+      vx_samples: 20
+      vy_samples: 10   # Y轴采样，关键！
+      vtheta_samples: 40
+      sim_time: 1.5
+      
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      PathAlign.scale: 120.0 # 强烈跟随路径
+      GoalAlign.scale: 40.0
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      BaseObstacle.scale: 0.05
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: "odom"
+      robot_base_frame: "base_footprint"
+      use_sim_time: False
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      robot_radius: 0.22 # 根据你40cm宽的车体设定的半径
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        scan:
+          topic: "/scan"
+          obstacle_min_range: 0.25 # 核心：滤掉自身柱子
+          obstacle_max_range: 2.5
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.5 # 膨胀半径
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      global_frame: "map"
+      robot_base_frame: "base_footprint"
+      use_sim_time: False
+      robot_radius: 0.22
+      resolution: 0.05
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        scan:
+          topic: "/scan"
+          obstacle_min_range: 0.25
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.5
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 5.0
+    use_sim_time: False
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.1

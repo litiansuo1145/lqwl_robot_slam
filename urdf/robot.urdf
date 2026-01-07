@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<robot name="mecanum_car">
+
+  <!-- 1. 虚拟投影点 base_footprint (地面) -->
+  <link name="base_footprint"/>
+
+  <!-- 2. 物理中心点 base_link (底盘主体) -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry>
+        <!-- 尺寸参考你之前的数值：长18.3cm, 宽32.3cm, 高8cm -->
+        <box size="0.183 0.323 0.08"/> 
+      </geometry>
+      <material name="blue">
+        <color rgba="0.1 0.1 0.8 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- 3. 激光雷达 laser -->
+  <link name="laser">
+    <visual>
+      <geometry>
+        <cylinder length="0.05" radius="0.03"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0.1 0.1 1"/>
+      </material>
+    </visual>
+  </link>
+  
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser"/>
+    <!-- xyz: 往前偏移5cm, 高度离地约14cm(0.08+0.06) -->
+    <!-- rpy: 核心修正！雷达箭头朝左，所以Yaw设为 1.5708 (90度) -->
+    <origin xyz="0.05 0 0.14" rpy="0 0 1.5708"/>  
+  </joint>
+
+  <!-- 4. 惯性测量单元 imu_link -->
+  <link name="imu_link">
+    <visual>
+      <geometry><box size="0.02 0.02 0.01"/></geometry>
+      <material name="orange"><color rgba="1.0 0.5 0 1"/></material>
+    </visual>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+  </joint>
+
+  <!-- 5. 车头指示器 (方便你在RViz里分辨哪边是正前方) -->
+  <link name="front_indicator">
+    <visual>
+      <geometry><box size="0.05 0.01 0.01"/></geometry>
+      <material name="green"><color rgba="0 1 0 1"/></material>
+    </visual>
+  </link>
+
+  <joint name="front_indicator_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_indicator"/>
+    <origin xyz="0.1 0 0.04" rpy="0 0 0"/>
+  </joint>
+
+</robot>

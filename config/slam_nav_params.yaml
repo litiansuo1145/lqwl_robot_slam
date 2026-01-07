@@ -1,0 +1,101 @@
+# 注意：删除了 amcl 和 map_server 的参数块，因为 SLAM 模式不需要它们
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: "map"
+    robot_base_frame: "base_footprint"
+    odom_topic: "odom"
+    bt_loop_duration: 10
+    default_server_timeout: 20
+
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 10.0 # 边建图边导航，建议设为10Hz平衡算力
+    controller_plugins: ["FollowPath"]
+    FollowPath:
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      angular_dist_threshold: 0.785
+      rotate_to_heading_angular_vel: 0.6
+      # DWB 内部参数（针对麦轮）
+      min_vel_x: -0.10
+      min_vel_y: -0.15
+      max_vel_x: 0.30
+      max_vel_y: 0.20
+      max_vel_theta: 0.8
+      vx_samples: 20
+      vy_samples: 10
+      vtheta_samples: 30
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      PathAlign.scale: 100.0
+      GoalAlign.scale: 40.0
+      BaseObstacle.scale: 0.05
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: "odom"
+      robot_base_frame: "base_footprint"
+      use_sim_time: False
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      robot_radius: 0.22
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        scan:
+          topic: "/scan"
+          obstacle_min_range: 0.25
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.4
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      global_frame: "map"
+      robot_base_frame: "base_footprint"
+      use_sim_time: False
+      robot_radius: 0.22
+      resolution: 0.05
+      # 边建图边导航的关键：静态层订阅实时的 /map 话题
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        scan:
+          topic: "/scan"
+          obstacle_min_range: 0.25
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.5
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 2.0
+    use_sim_time: False
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.2
+
+# 关键：修改生命周期管理器，去掉 amcl 和 map_server
+lifecycle_manager_navigation:
+  ros__parameters:
+    use_sim_time: False
+    autostart: True
+    node_names: ['controller_server',
+                 'planner_server',
+                 'behavior_server',
+                 'bt_navigator',
+                 'waypoint_follower',
+                 'velocity_smoother']
