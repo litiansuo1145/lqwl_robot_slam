@@ -9,10 +9,10 @@ options = {
   published_frame = "odom",       
   odom_frame = "odom",
   provide_odom_frame = false,      
-  publish_frame_projected_to_2d = false,
+  publish_frame_projected_to_2d = true,
   use_pose_extrapolator = true,
   use_odometry = true,            
-  use_nav_sat = false,
+  use_nav_sat = false,  
   use_landmarks = false,
   num_laser_scans = 1,
   num_multi_echo_laser_scans = 0,
@@ -30,24 +30,25 @@ options = {
 }
 
 MAP_BUILDER.use_trajectory_builder_2d = true
-MAP_BUILDER.num_background_threads = 6 
+MAP_BUILDER.num_background_threads = 4     -- 多线程加速建图
 
 TRAJECTORY_BUILDER_2D.use_imu_data = true
 TRAJECTORY_BUILDER_2D.min_range = 0.25      
 TRAJECTORY_BUILDER_2D.max_range = 12.0
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 5.0
 
+
 -- 【新增/修改点 1】强制原地更新地图：极其细微的动作也会触发建图
-TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = 0.01  -- 移动 1 厘米就更新
-TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(0.1) -- 旋转 0.1 度就更新
-TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.1      -- 强制 0.1 秒更新一次
+TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = 0.05  -- 移动 5 厘米就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(1) -- 旋转 1 度就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.5      -- 强制 0.5 秒更新一次
 
 -- 【新增/修改点 2】提高障碍物插入信心：让雷达扫到的点更容易变“黑”
 TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.7
 TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.miss_probability = 0.4
 
--- 【新增/修改点 3】减少数据堆叠：每一帧雷达数据都立刻参与建图
-TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 1
+
+TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 1 -- 每收到一帧雷达数据就建图
 
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true 
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.1
@@ -56,9 +57,10 @@ TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_wei
 
 TRAJECTORY_BUILDER_2D.imu_gravity_time_constant = 9.8
 
--- 【修改点 4】提高后端优化频率：让子图更快地拼接成完整地图
+
 POSE_GRAPH.optimization_problem.huber_scale = 1e2
-POSE_GRAPH.optimize_every_n_nodes = 10  -- 从 35 降到 10，让黑线出得更快
+POSE_GRAPH.optimize_every_n_nodes = 60 -- 默认 90, 改小点更频繁优化
 POSE_GRAPH.constraint_builder.min_score = 0.65
+
 
 return options
