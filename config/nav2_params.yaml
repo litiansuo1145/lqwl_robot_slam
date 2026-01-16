@@ -1,7 +1,13 @@
 amcl:
   ros__parameters:
     use_sim_time: False
-    robot_model_type: "nav2_amcl::OmniMotionModel" # 麦轮必须使用全向模型
+    robot_model_type: "nav2_amcl::OmniMotionModel" # 麦轮必须用全向模型
+    odom_topic: "odom"
+    global_frame_id: "map"
+    base_frame_id: "base_footprint"
+    odom_frame_id: "odom"
+    scan_topic: "scan"
+    transform_tolerance: 0.5
 
 bt_navigator:
   ros__parameters:
@@ -9,43 +15,35 @@ bt_navigator:
     global_frame: "map"
     robot_base_frame: "base_footprint"
     odom_topic: "odom"
-    bt_loop_duration: 10
-    default_server_timeout: 20
 
 controller_server:
   ros__parameters:
     use_sim_time: False
-    controller_frequency: 20.0 # Jetson 性能强，跑 20Hz 保证丝滑
-    min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.001
-    min_theta_velocity_threshold: 0.001
+    controller_frequency: 20.0
     controller_plugins: ["FollowPath"]
 
-    # 核心插件：旋转补偿 + DWB
+    # 使用经典的 DWB 控制器
     FollowPath:
-      plugin: "nav2_rotation_shim_controller::RotationShimController"
-      primary_controller: "dwb_core::DWBLocalPlanner"
-      angular_dist_threshold: 0.785 # 大于45度先原地转，解决犹豫
-      rotate_to_heading_angular_vel: 0.8
-      max_angular_accel: 2.0
-      
-      # DWB 内部参数
-      min_vel_x: -0.10 # 允许在目标点附近小幅后退微调
+      plugin: "dwb_core::DWBLocalPlanner"
+      debug_trajectory_details: True
+      min_vel_x: -0.10
       min_vel_y: -0.15 # 开启麦轮横移
-      max_vel_x: 0.35
+      max_vel_x: 0.30
       max_vel_y: 0.20
       max_vel_theta: 1.0
+      acc_lim_x: 2.5
+      acc_lim_y: 1.5
+      acc_lim_theta: 3.2
       vx_samples: 20
-      vy_samples: 10   # Y轴采样，关键！
-      vtheta_samples: 40
-      sim_time: 1.5
-      
+      vy_samples: 10   # Y轴方向采样
+      vtheta_samples: 30
+      sim_time: 1.7
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      PathAlign.scale: 120.0 # 强烈跟随路径
-      GoalAlign.scale: 40.0
+      PathAlign.scale: 32.0
+      GoalAlign.scale: 24.0
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      BaseObstacle.scale: 0.05
+      BaseObstacle.scale: 0.1
 
 local_costmap:
   local_costmap:
@@ -54,22 +52,21 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: "odom"
       robot_base_frame: "base_footprint"
-      use_sim_time: False
       rolling_window: true
-      width: 3
-      height: 3
+      width: 4
+      height: 4
       resolution: 0.05
-      robot_radius: 0.22 # 根据你40cm宽的车体设定的半径
+      robot_radius: 0.22
       plugins: ["obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         scan:
           topic: "/scan"
-          obstacle_min_range: 0.25 # 核心：滤掉自身柱子
-          obstacle_max_range: 2.5
+          obstacle_min_range: 0.25
+          obstacle_max_range: 3.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.5 # 膨胀半径
+        inflation_radius: 0.5
 
 global_costmap:
   global_costmap:
@@ -78,24 +75,40 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: "map"
       robot_base_frame: "base_footprint"
-      use_sim_time: False
       robot_radius: 0.22
       resolution: 0.05
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         scan:
           topic: "/scan"
           obstacle_min_range: 0.25
-      inflation_layer:
-        plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.5
+
+map_server:
+  ros__parameters:
+    use_sim_time: False
+    # 【修复】直接在这里硬编码地图路径，确保加载成功
+    yaml_filename: "/home/ros2/ros2_ws/src/my_slam/maps/my_map.yaml"
 
 planner_server:
   ros__parameters:
     expected_planner_frequency: 5.0
-    use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.1
+
+behavior_server:
+  ros__parameters:
+    behavior_plugins: ["spin", "backup", "wait"]
+    spin: {plugin: "nav2_behaviors/Spin"}
+    backup: {plugin: "nav2_behaviors/BackUp"}
+    wait: {plugin: "nav2_behaviors/Wait"}
+
+lifecycle_manager_navigation:
+  ros__parameters:
+    autostart: True
+    node_names: ['map_server', 'amcl', 'controller_server', 'planner_server', 'behavior_server', 'bt_navigator', 'waypoint_follower', 'velocity_smoother']

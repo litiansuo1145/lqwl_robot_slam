@@ -6,52 +6,40 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # 1. 路径定义
     pkg_my_slam = get_package_share_directory('my_slam')
     pkg_driver = get_package_share_directory('car_driver')
     pkg_sllidar = get_package_share_directory('sllidar_ros2')
     pkg_witmotion = get_package_share_directory('witmotion_ros2')
-    pkg_nav2 = get_package_share_directory('nav2_bringup')
 
     # URDF 内容
     urdf_file = os.path.join(pkg_my_slam, 'urdf', 'robot.urdf')
     robot_desc = open(urdf_file, 'r').read()
 
-    # ================= 2. 基础硬件 (立即启动) =================
+    # 1. 机器人状态发布
     rsp_node = Node(package='robot_state_publisher', executable='robot_state_publisher',
                     parameters=[{'robot_description': robot_desc}])
-    
+
+    # 2. C++ 驱动节点
     car_node = Node(package='car_driver', executable='carnode', parameters=[{'port': '/dev/dock_32car'}])
-    
+
+    # 3. 雷达与 IMU 驱动
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_sllidar, 'launch', 'sllidar_c1_launch.py')),
         launch_arguments={'serial_port': '/dev/usb2_lidar', 'scan_mode': 'Standard'}.items()
     )
-    
     imu_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_witmotion, 'launch', 'witmotion.launch.py')),
         launch_arguments={'port': '/dev/dock_imu'}.items()
     )
 
-    # ================= 3. Cartographer SLAM (关键：提供定位和地图) =================
+    # 4. Slam Toolbox 异步节点
+    slam_params = os.path.join(pkg_my_slam, 'config', 'slam_toolbox_params.yaml')
     slam_node = Node(
-        package='cartographer_ros', executable='cartographer_node',
-        arguments=['-configuration_directory', os.path.join(pkg_my_slam, 'config'),
-                   '-configuration_basename', 'lidar_2d.lua'],
-        remappings=[('/imu', '/imu/data'), ('/odom', '/odom')]
-    )
-    
-    grid_node = Node(package='cartographer_ros', executable='cartographer_occupancy_grid_node',
-                     arguments=['-resolution', '0.05', '-publish_period_sec', '1.0'])
-
-    # ================= 4. Nav2 (只启动规划和控制，不启动AMCL) =================
-    nav_params = os.path.join(pkg_my_slam, 'config', 'slam_nav_params.yaml')
-    
-    # 关键：调用 navigation_launch.py 而不是 bringup_launch.py
-    # 因为 bringup 会强制找地图文件并启动 AMCL
-    nav_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(pkg_nav2, 'launch', 'navigation_launch.py')),
-        launch_arguments={'params_file': nav_params, 'use_sim_time': 'false'}.items()
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        parameters=[slam_params]
     )
 
     return LaunchDescription([
@@ -59,8 +47,6 @@ def generate_launch_description():
         car_node,
         lidar_launch,
         imu_launch,
-        # 延迟启动 SLAM
-        TimerAction(period=3.0, actions=[slam_node, grid_node]),
-        # 延迟启动 Nav2
-        TimerAction(period=6.0, actions=[nav_launch])
+        # 延迟 3 秒启动 SLAM 确保 TF 树建立
+        TimerAction(period=3.0, actions=[slam_node])
     ])

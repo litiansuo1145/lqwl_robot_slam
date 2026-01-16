@@ -1,0 +1,53 @@
+async_slam_toolbox_node:
+  ros__parameters:
+
+    # 1. 坐标系与话题 (保持一致)
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /scan
+    use_sim_time: false
+
+    # 2. 扫描处理 (针对 10Hz 雷达优化)
+    max_laser_range: 12.0
+    minimum_range: 0.25           # 滤掉机器人支柱
+    resolution: 0.05              # 5cm 分辨率在平衡性能与细节方面最好
+    throttle_scans: 1             # 10Hz不建议抽稀，保留所有细节
+    scan_buffer_size: 30          # 增加缓冲区，防止转身时丢包导致重影
+
+    # 3. 核心：在线扫描匹配 (解决旋转 180 度地图偏出的关键)
+    use_online_correlative_scan_matching: true # 必须开启！
+    
+    # 增加旋转搜索窗口到 40 度左右 (0.7 弧度)
+    # 这样即便转身快了，算法也能在 40 度范围内强行把地图“拧”回来
+    real_time_correlative_scan_matcher:
+      linear_search_window: 0.15
+      angular_search_window: 0.7 
+      translation_delta_cost_weight: 10.0
+      rotation_delta_cost_weight: 0.1  # 降低旋转代价权重，允许雷达匹配大幅修正 IMU 误差
+
+    # 4. 后端优化与闭环检测 (解决路径不闭环的关键)
+    do_loop_closing: true
+    
+    # 【核心修改】：降低闭环得分门槛
+    # 默认通常是 0.55，降到 0.45 可以显著提高在大角度旋转后认出旧地图的概率
+    POSE_GRAPH:
+      constraint_builder:
+        min_score: 0.45
+        global_localization_min_score: 0.55
+        loop_search_maximum_distance: 10.0 # 扩大闭环搜索半径
+
+    # 提高优化频率，每 15 个节点优化一次
+    optimize_every_n_nodes: 15
+    optimization_step_limit: 0.5
+
+    # 5. 运动过滤 (控制何时更新地图)
+    # 针对麦轮容易打滑，我们稍微放宽更新门限
+    minimum_time_interval: 0.1
+    minimum_travel_distance: 0.15      # 走 15cm 更新一次
+    minimum_travel_heading: 0.15       # 转 8.5 度更新一次
+
+    # 6. 内存与超时控制
+    transform_timeout: 0.2
+    tf_buffer_duration: 30.0
+    stack_size_to_use: 40000000        # 增加栈大小
