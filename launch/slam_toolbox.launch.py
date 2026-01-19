@@ -20,7 +20,24 @@ def generate_launch_description():
                     parameters=[{'robot_description': robot_desc}])
 
     # 2. C++ 驱动节点
-    car_node = Node(package='car_driver', executable='carnode', parameters=[{'port': '/dev/dock_32car'}])
+    car_node = Node(package='car_driver', executable='carnode', parameters=[{'port': '/dev/dock_32car', 'publish_tf': True, 'baudrate': 115200}])
+    # 手柄驱动节点
+    joynode = Node(
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
+        parameters=[{
+            'dev': '/dev/input/js0',
+            'deadzone': 0.05,
+            'autorepeat_rate': 10.0,
+        }]
+    )
+    # 操作控制节点
+    teleop_node = Node(
+            package='py_pkg',
+            executable='teleop_control_node',
+            parameters=[{'linear_scale': 0.4, 'angular_scale': 1.0}]
+        )
 
     # 3. 雷达与 IMU 驱动
     lidar_launch = IncludeLaunchDescription(
@@ -31,7 +48,6 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(os.path.join(pkg_witmotion, 'launch', 'witmotion.launch.py')),
         launch_arguments={'port': '/dev/dock_imu'}.items()
     )
-
     # 4. Slam Toolbox 异步节点
     slam_params = os.path.join(pkg_my_slam, 'config', 'slam_toolbox_params.yaml')
     slam_node = Node(
@@ -47,6 +63,8 @@ def generate_launch_description():
         car_node,
         lidar_launch,
         imu_launch,
+        joynode,
+        teleop_node,
         # 延迟 3 秒启动 SLAM 确保 TF 树建立
         TimerAction(period=3.0, actions=[slam_node])
     ])

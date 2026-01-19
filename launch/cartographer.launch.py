@@ -41,7 +41,23 @@ def generate_launch_description():
             'publish_tf': False
         }],
     )
-
+    # 手柄驱动节点
+    joynode = Node(
+        package='joy',
+        executable='joy_node',
+        name='joy_node',
+        parameters=[{
+            'dev': '/dev/input/js0',
+            'deadzone': 0.05,
+            'autorepeat_rate': 10.0,
+        }]
+    )
+    # 操作控制节点
+    teleop_node = Node(
+            package='py_pkg',
+            executable='teleop_control_node',
+            parameters=[{'linear_scale': 0.4, 'angular_scale': 1.0}]
+        )
     # ---------- 雷达 ----------
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -61,14 +77,7 @@ def generate_launch_description():
         ),
         launch_arguments={'port': '/dev/dock_imu'}.items()
     )
-    # ---------- 遥控节点 (新增部分) ----------
-    # 这里加载 my_launch_pkg 包下的 launch/serial.launch.py
-    teleop_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_my_launch, 'launch', 'serial.launch.py')
-        )
-    )
-    # ---------- EKF（核心） ----------
+    # ---------- EKF ----------
     ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -102,9 +111,10 @@ def generate_launch_description():
     return LaunchDescription([
         rsp_node,
         car_node,
+        joynode,
+        teleop_node,
         lidar_launch,
         imu_launch,
-        teleop_launch, 
         TimerAction(
             period=1.5,
             actions=[ekf_node]
