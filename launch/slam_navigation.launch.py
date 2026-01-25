@@ -51,7 +51,7 @@ def generate_launch_description():
     # 因为 bringup 会强制找地图文件并启动 AMCL
     nav_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_nav2, 'launch', 'navigation_launch.py')),
-        launch_arguments={'params_file': nav_params, 'use_sim_time': 'false'}.items()
+        launch_arguments={'params_file': nav_params, 'use_sim_time': 'False'}.items()
     )
 
     return LaunchDescription([

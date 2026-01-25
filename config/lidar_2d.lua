@@ -34,7 +34,7 @@ MAP_BUILDER.num_background_threads = 4
 
 TRAJECTORY_BUILDER_2D.use_imu_data = true
 TRAJECTORY_BUILDER_2D.min_range = 0.25      
-TRAJECTORY_BUILDER_2D.max_range = 12.0
+TRAJECTORY_BUILDER_2D.max_range = 15.0
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 5.0
 
 
@@ -44,9 +44,9 @@ TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(0.5) -- 旋转 
 TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.3      -- 最多 0.3 秒就更新
 
 -- 子图相关参数调整
-TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.7
+TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.55
 TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.miss_probability = 0.4
-TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 3 -- 每3帧雷达数据构建一个子图
+TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 5 -- 每5帧雷达数据构建一个子图
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true 
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.2
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.translation_delta_cost_weight = 20.0 -- 平移代价权重

@@ -1,3 +1,4 @@
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -9,7 +10,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
 
     pkg_my_slam = get_package_share_directory('my_slam')
-    pkg_sllidar = get_package_share_directory('sllidar_ros2')
+    pkg_sllidar = get_package_share_directory('rplidar_ros')
     pkg_witmotion = get_package_share_directory('witmotion_ros2')
     pkg_car_driver = get_package_share_directory('car_driver')
     pkg_my_launch = get_package_share_directory('my_launch_pkg') 
@@ -32,7 +33,7 @@ def generate_launch_description():
 
     # ---------- 底盘 ----------
     car_node = Node(
-        package='car_driver',
+        package='py_pkg',
         executable='carnode',
         output='screen',
         parameters=[{
@@ -61,7 +62,7 @@ def generate_launch_description():
     # ---------- 雷达 ----------
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_sllidar, 'launch', 'sllidar_c1_launch.py')
+            os.path.join(pkg_sllidar, 'launch', 'rplidar_c1_launch.py')
         ),
         launch_arguments={
             'serial_port': '/dev/usb2_lidar',
@@ -116,11 +117,11 @@ def generate_launch_description():
         lidar_launch,
         imu_launch,
         TimerAction(
-            period=1.5,
+            period=1.0,
             actions=[ekf_node]
         ),
         TimerAction(
-            period=3.0,
+            period=2.0,
             actions=[cartographer_node, occupancy_grid_node]
         )
     ])

@@ -1,6 +1,6 @@
 ekf_filter_node:
   ros__parameters:
-    frequency: 30.0       # 建议改为 30-50，过高(50+)对于Nano CPU负载较大且不仅没必要
+    frequency: 30.0
     sensor_timeout: 0.1
     two_d_mode: true
 
@@ -12,31 +12,27 @@ ekf_filter_node:
     publish_tf: true
     publish_acceleration: false
 
-    # ========== 轮速里程计 (优化：只融合速度) ==========
+    # ================== 轮速里程计 ==================
     odom0: /odom
-    # 格式: [x, y, z, 
-    #        roll, pitch, yaw, 
-    #        vx, vy, vz, 
-    #        vroll, vpitch, vyaw, 
-    #        ax, ay, az]
-    odom0_config: [false, false, false,
-                   false, false, false,
-                   true,  true,  false,   # 融合 Vx, Vy (麦轮需要Vy)
-                   false, false, true,    # 融合 Vyaw (角速度)
+    # [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    odom0_config: [true,  true,  false,
+                   false, false, true,
+                   true,  true,  false,
+                   false, false, true,
                    false, false, false]
+
     odom0_queue_size: 10
     odom0_differential: false
     odom0_relative: false
 
-    # ========== IMU (优化：只融合角速度) ==========
+    # ================== IMU ==================
     imu0: /imu/data
-    # 格式同上
     imu0_config: [false, false, false,
-                  false, false, false,    # 关闭 Roll, Pitch, Yaw (解决抖动的关键)
+                  false, false, false,   # ❗ 不直接用 IMU 的 yaw 角
                   false, false, false,
-                  true,  true,  true,     # 融合 Vroll, Vpitch, Vyaw (使用陀螺仪数据)
-                  false, false, false]    # 通常不融合加速度，除非你有很好且标定过的加速度计
-    imu0_queue_size: 10
-    imu0_differential: false  # 因为只融合角速度，这里设为false即可
-    imu0_relative: true       # 建议开启，消除上电时的初始偏差
+                  false, false, true,    # 只用角速度 vyaw
+                  false, false, false]
+
+    imu0_differential: false
+    imu0_relative: true
     imu0_remove_gravitational_acceleration: true

@@ -22,10 +22,21 @@ def generate_launch_description():
     )
 
     # 2. 硬件驱动
-    car_node = Node(package='car_driver', executable='carnode', parameters=[{'port': '/dev/dock_32car'}])
-    
+   # 启动 py_pkg 包中的 carnode.py - 创建小车控制节点
+    car_node = Node(
+        # 节点所属的功能包名
+        package='py_pkg',
+        # 可执行文件的名称（carnode）
+        executable='carnode',
+        # 节点的名称
+        name='carnode',
+        # 输出到屏幕（控制台），便于调试
+        output='screen',
+        parameters=[{
+            'publish_tf': True}]
+    )
     lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(get_package_share_directory('sllidar_ros2'), 'launch', 'sllidar_c1_launch.py')),
+        PythonLaunchDescriptionSource(os.path.join(get_package_share_directory('rplidar_ros'), 'launch', 'rplidar_c1_launch.py')),
         launch_arguments={'serial_port': '/dev/usb2_lidar'}.items()
     )
     
@@ -44,14 +55,8 @@ def generate_launch_description():
         }.items()
     )
 
-    # 4. 自动归零
-    auto_reset = TimerAction(
-        period=2.0,
-        actions=[ExecuteProcess(cmd=['ros2', 'topic', 'pub', '--once', '/num_cmd', 'std_msgs/msg/Int32', '{data: 23}'])]
-    )
 
     return LaunchDescription([
         rsp_node, car_node, lidar_launch, imu_launch,
-        TimerAction(period=5.0, actions=[nav_launch]),
-        auto_reset
+        TimerAction(period=3.0, actions=[nav_launch]),
     ])

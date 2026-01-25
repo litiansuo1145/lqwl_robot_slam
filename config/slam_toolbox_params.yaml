@@ -1,53 +1,55 @@
 async_slam_toolbox_node:
   ros__parameters:
 
-    # 1. 坐标系与话题 (保持一致)
+    # 1. 坐标系与话题
     odom_frame: odom
     map_frame: map
     base_frame: base_footprint
     scan_topic: /scan
     use_sim_time: false
 
-    # 2. 扫描处理 (针对 10Hz 雷达优化)
-    max_laser_range: 15.0
-    minimum_range: 0.35           # 滤掉机器人支柱
-    resolution: 0.05              # 5cm 分辨率在平衡性能与细节方面最好
-    throttle_scans: 1             # 10Hz不建议抽稀，保留所有细节
-    scan_buffer_size: 30          # 增加缓冲区，防止转身时丢包导致重影
+    # 2. 扫描处理 (针对高精度和减少重影优化)
+    laser_min_range: 0.05    # 与雷达实际范围匹配
+    laser_max_range: 10.0   # 与雷达实际范围匹配
+    laser_max_angle: 3.14159 # 通常为π（-π到π）
+    laser_min_angle: 0       ### 【修改】调大到 0.45m，彻底解决扫到机器人自身柱子/线缆产生的“黑色短线”
+    resolution: 0.05              
+    throttle_scans: 1             
+    scan_buffer_size: 50   
+           ### 【修改】增加缓冲区，防止转身时因瞬时计算压力导致的丢帧
 
-    # 3. 核心：在线扫描匹配 (解决旋转 180 度地图偏出的关键)
-    use_online_correlative_scan_matching: true # 必须开启！
+    # 3. 核心：扫描匹配与地图更新频率
+    map_update_interval: 0.5      ### 【核心修改】从 1.0 降到 0.5 秒。这会让地图刷新变快一倍，解决“更新慢”的直观感受
+    use_online_correlative_scan_matching: true 
     
-    # 增加旋转搜索窗口到 40 度左右 (0.7 弧度)
-    # 这样即便转身快了，算法也能在 40 度范围内强行把地图“拧”回来
     real_time_correlative_scan_matcher:
       linear_search_window: 0.1
-      angular_search_window: 0.4
-      translation_delta_cost_weight: 15.0
-      rotation_delta_cost_weight: 1.0  # 降低旋转代价权重，允许雷达匹配大幅修正 IMU 误差
+      angular_search_window: 0.5  ### 【修改】设为 0.5 (约 28 度)，平衡了旋转找正能力和防止误匹配导致的瞬移
+      translation_delta_cost_weight: 20.0 ### 【修改】调高平移权重，防止机器人位置在地图上“乱跳”
+      rotation_delta_cost_weight: 1.0
 
-    # 4. 后端优化与闭环检测 (解决路径不闭环的关键)
+    # 4. 后端优化与闭环检测 (解决地图拉扯)
     do_loop_closing: true
-    
-    # 【核心修改】：降低闭环得分门槛
-    # 默认通常是 0.55，降到 0.45 可以显著提高在大角度旋转后认出旧地图的概率
     POSE_GRAPH:
       constraint_builder:
-        min_score: 0.55
+        min_score: 0.55          ### 【修改】恢复到 0.55，防止分值太低导致错误闭环产生“重影”
         global_localization_min_score: 0.65
-        loop_search_maximum_distance: 10.0 # 扩大闭环搜索半径
+        loop_search_maximum_distance: 10.0 
 
-    # 提高优化频率，每 15 个节点优化一次
-    optimize_every_n_nodes: 15
+    # 提高后端优化频率
+    optimize_every_n_nodes: 10    ### 【修改】每增加 10 个节点就优化一次，让地图拼接更实时
     optimization_step_limit: 0.5
 
-    # 5. 运动过滤 (控制何时更新地图)
-    # 针对麦轮容易打滑，我们稍微放宽更新门限
-    minimum_time_interval: 0.1
-    minimum_travel_distance: 0.1      # 走 15cm 更新一次
-    minimum_travel_heading: 0.1      # 转 8.5 度更新一次
+    # 5. 运动过滤 (提高灵敏度)
+    minimum_time_interval: 0.05   ### 【修改】允许更高频率的更新
+    minimum_travel_distance: 0.1  ### 【修改】移动 10cm 即更新，使建图过程更平滑
+    minimum_travel_heading: 0.1   ### 【修改】转动 5.7 度即更新，解决大幅度转向不及时的问题
 
-    # 6. 内存与超时控制
+    # 6. 内存与性能调整
     transform_timeout: 0.2
     tf_buffer_duration: 30.0
-    stack_size_to_use: 40000000        # 增加栈大小
+    stack_size_to_use: 40000000
+
+
+
+    

@@ -1,0 +1,4 @@
+laser_filter:
+  ros__parameters:
+    scan_filter_chain:
+      - {name: "box_filter", type: "laser_filters/LaserScanBoxFilter", params: {box_frame: "base_link", invert: false, min_x: -0.5, max_x: -0.05, min_y: -0.3, max_y: 0.3, min_z: -0.5, max_z: 0.5}}

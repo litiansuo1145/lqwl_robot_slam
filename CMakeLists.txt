@@ -23,6 +23,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 #安装目录
+install(PROGRAMS
+  src/carnode.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 install(DIRECTORY
   config
   launch

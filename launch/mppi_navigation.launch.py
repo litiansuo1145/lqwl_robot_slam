@@ -9,8 +9,8 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     # 1. 获取包路径
     pkg_my_slam = get_package_share_directory('my_slam')
-    pkg_driver = get_package_share_directory('car_driver')
-    pkg_sllidar = get_package_share_directory('sllidar_ros2')
+    pkg_driver = get_package_share_directory('py_pkg')
+    pkg_sllidar = get_package_share_directory('rplidar_ros')
     pkg_witmotion = get_package_share_directory('witmotion_ros2')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
 
@@ -33,17 +33,17 @@ def generate_launch_description():
 
     # 4. C++ 驱动节点 (使用你指定的 dock_32car 端口)
     car_node = Node(
-        package='car_driver',
+        package='py_pkg',
         executable='carnode',
         name='carnode',
         output='screen',
-        parameters=[{'port': '/dev/dock_32car'}]
+        parameters=[{'port': '/dev/dock_32car', 'publish_tf': True, }]
     )
 
     # 5. 雷达驱动 (使用你指定的 usb2_lidar 端口)
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_sllidar, 'launch', 'sllidar_c1_launch.py')
+            os.path.join(pkg_sllidar, 'launch', 'rplidar_c1_launch.py')
         ),
         launch_arguments={
             'serial_port': '/dev/usb2_lidar', 
@@ -51,7 +51,7 @@ def generate_launch_description():
             'frame_id': 'laser'
         }.items()
     )
-
+    
     # 6. IMU 驱动 (使用你指定的 dock_imu 端口)
     imu_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -68,24 +68,22 @@ def generate_launch_description():
     ),
     launch_arguments={
         'map': map_yaml_file,
-        'use_sim_time': 'false',
+        'use_sim_time': 'False',
         'params_file': nav2_params_file,
-        'autostart': 'true',
-
-
-        'slam': 'false',
-        'localization': 'true'
+        'autostart': 'True',
+        'slam': 'False',
+        'localization': 'True'
     }.items()
-    )
+)
     # 8. 返回描述，依然建议使用延迟确保硬件稳定
     return LaunchDescription([
         rsp_node,
         car_node,
         lidar_launch,
         imu_launch,
-        # 延迟 5 秒启动 Nav2，等待地图加载和传感器同步
+        # 延迟 3 秒启动 Nav2，等待地图加载和传感器同步
         TimerAction(
-            period=5.0,
+            period=3.0,
             actions=[nav2_bringup_launch]
         )
     ])
