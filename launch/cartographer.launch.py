@@ -39,7 +39,7 @@ def generate_launch_description():
         parameters=[{
             'port': '/dev/dock_32car',
             'baudrate': 115200,
-            'publish_tf': False
+            'publish_tf': True
         }],
     )
     # 手柄驱动节点
@@ -78,14 +78,6 @@ def generate_launch_description():
         ),
         launch_arguments={'port': '/dev/dock_imu'}.items()
     )
-    # ---------- EKF ----------
-    ekf_node = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_filter_node',
-        output='screen',
-        parameters=[ekf_config]
-    )
 
     # ---------- Cartographer ----------
     cartographer_node = Node(
@@ -98,7 +90,7 @@ def generate_launch_description():
         ],
         remappings=[
             ('/imu', '/imu/data'),
-            ('/odom', '/odometry/filtered')  
+            ('/odom', '/odom'),  
         ]
     )
 
@@ -116,10 +108,6 @@ def generate_launch_description():
         teleop_node,
         lidar_launch,
         imu_launch,
-        TimerAction(
-            period=1.0,
-            actions=[ekf_node]
-        ),
         TimerAction(
             period=2.0,
             actions=[cartographer_node, occupancy_grid_node]

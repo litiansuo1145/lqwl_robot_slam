@@ -50,7 +50,7 @@ def generate_launch_description():
     teleop_node = Node(
             package='py_pkg',
             executable='teleop_control_node',
-            parameters=[{'linear_scale': 0.4, 'angular_scale': 1.0}]
+            parameters=[{'linear_scale': 0.8, 'angular_scale': 2.0}]
         )
 
     # 3. 雷达与 IMU 驱动
