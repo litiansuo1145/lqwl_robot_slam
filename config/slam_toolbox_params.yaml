@@ -1,19 +1,19 @@
-async_slam_toolbox_node:
+slam_toolbox:
   ros__parameters:
 
     # ================= 1. 基础配置 =================
     odom_frame: odom
     map_frame: map
     base_frame: base_footprint
-    scan_topic: /scan
+    scan_topic: /scan_filtered
     use_sim_time: false
     
    
     transform_publish_period: 0.02  
-    laser_min_range: 0.05
-    laser_max_range: 12.0    
+    laser_min_range : 0.40
+    laser_max_range: 8.0    
     laser_max_angle: 3.14159 
-    laser_min_angle: 0       
+    laser_min_angle: 1.5708 
     resolution: 0.04              
     
     throttle_scans: 1             
@@ -26,10 +26,10 @@ async_slam_toolbox_node:
     
    
     real_time_correlative_scan_matcher:
-      linear_search_window: 0.2
-      angular_search_window: 0.5  
-      translation_delta_cost_weight: 20.0
-      rotation_delta_cost_weight: 1.0
+      linear_search_window: 1.5
+      angular_search_window: 1.0
+      translation_delta_cost_weight: 0.1
+      rotation_delta_cost_weight: 0.1
       correlation_search_space_resolution: 0.01
 
     # ================= 4. 后端优化 (Loop Closure) =================
@@ -50,9 +50,9 @@ async_slam_toolbox_node:
     optimization_step_limit: 0.5
 
     
-    minimum_time_interval: 0.05   
-    minimum_travel_distance: 0.05 
-    minimum_travel_heading: 0.05  
+    minimum_time_interval: 0.5  
+    minimum_travel_distance: 0.15
+    minimum_travel_heading: 0.25
 
     # ================= 6. 系统资源 =================
     transform_timeout: 0.2

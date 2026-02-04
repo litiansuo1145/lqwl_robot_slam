@@ -1,7 +1,7 @@
 ekf_filter_node:
   ros__parameters:
     frequency: 30.0
-    sensor_timeout: 0.1
+    sensor_timeout: 0.5
     two_d_mode: true
 
     map_frame: map
@@ -9,16 +9,16 @@ ekf_filter_node:
     base_link_frame: base_footprint
     world_frame: odom
 
-    publish_tf: true
-    publish_acceleration: false
+    publish_tf: true  # 发布里程计到基础坐标系的TF
+    publish_acceleration: false # 关闭加速度发布，减少噪声影响
 
     # ================== 轮速里程计 ==================
     odom0: /odom
     # [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
     odom0_config: [true,  true,  false,
-                   false, false, true,
+                   false, false, false,
                    true,  true,  false,
-                   false, false, true,
+                   false, false, false,
                    false, false, false]
 
     odom0_queue_size: 10
@@ -28,11 +28,11 @@ ekf_filter_node:
     # ================== IMU ==================
     imu0: /imu/data
     imu0_config: [false, false, false,
-                  false, false, false,   # ❗ 不直接用 IMU 的 yaw 角
+                  false, false, true,   #  不直接用 IMU 的 yaw 角
                   false, false, false,
                   false, false, true,    # 只用角速度 vyaw
                   false, false, false]
 
     imu0_differential: false
-    imu0_relative: true
+    imu0_relative: false
     imu0_remove_gravitational_acceleration: true

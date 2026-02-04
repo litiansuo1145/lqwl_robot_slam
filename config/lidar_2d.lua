@@ -33,31 +33,31 @@ MAP_BUILDER.use_trajectory_builder_2d = true
 MAP_BUILDER.num_background_threads = 4     
 
 TRAJECTORY_BUILDER_2D.use_imu_data = true
-TRAJECTORY_BUILDER_2D.min_range = 0.1
+TRAJECTORY_BUILDER_2D.min_range = 0.3
 TRAJECTORY_BUILDER_2D.max_range = 15.0
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 5.0
 
 
 --此处为地图更新的关键参数调整
-TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = 0.03  -- 平移 3 厘米就更新
-TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(0.5) -- 旋转 0.5 度就更新
-TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.3      -- 最多 0.3 秒就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_distance_meters = 0.1  -- 平移 3 厘米就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_angle_radians = math.rad(1.0) -- 旋转 0.5 度就更新
+TRAJECTORY_BUILDER_2D.motion_filter.max_time_seconds = 0.5     -- 最多 0.3 秒就更新
 
 -- 子图相关参数调整
-TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.75
+TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.hit_probability = 0.65
 TRAJECTORY_BUILDER_2D.submaps.range_data_inserter.probability_grid_range_data_inserter.miss_probability = 0.49
-TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 5 -- 每5帧雷达数据构建一个子图
+TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 15 -- 每15帧雷达数据构建一个子图
 TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true 
-TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.2
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.linear_search_window = 0.1
 TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.translation_delta_cost_weight = 20.0 -- 平移代价权重
-TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_weight = 1.0 -- 旋转代价权重
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_weight = 10.0 -- 旋转代价权重
 
 TRAJECTORY_BUILDER_2D.imu_gravity_time_constant = 1.0 -- IMU 重力时间常数
 
 
 POSE_GRAPH.optimization_problem.huber_scale = 1e2 -- Huber 核函数尺度
 POSE_GRAPH.optimize_every_n_nodes = 60 -- 每60个节点进行一次优化
-POSE_GRAPH.constraint_builder.min_score = 0.65 -- 约束建立的最低分数
+POSE_GRAPH.constraint_builder.min_score = 0.55 -- 约束建立的最低分数
 
 
 return options

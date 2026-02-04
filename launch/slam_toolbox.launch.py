@@ -24,13 +24,13 @@ def generate_launch_description():
 
     # 2. C++ 驱动节点
      # 启动 py_pkg 包中的 carnode.py - 创建小车控制节点
-    car_node = Node(
+    usbcar_node = Node(
         # 节点所属的功能包名
         package='py_pkg',
         # 可执行文件的名称（carnode）
-        executable='carnode',
+        executable='usbcar',
         # 节点的名称
-        name='carnode',
+        name='usbcar',
         # 输出到屏幕（控制台），便于调试
         output='screen',
         parameters=[{
@@ -61,8 +61,14 @@ def generate_launch_description():
         launch_arguments={
             'serial_port': '/dev/usb2_lidar',
             'frame_id': 'laser',
-            'scan_mode': 'Standard'
+            'scan_mode': 'Standard',
         }.items()
+    )
+    laser_filter_node = Node(
+        package='py_pkg',
+        executable='laser_filter',
+        name='laser_filter',
+        output='screen'
     )
     imu_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_witmotion, 'launch', 'witmotion.launch.py')),
@@ -90,8 +96,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         rsp_node,
-        car_node,
+        usbcar_node,
         lidar_launch,
+        laser_filter_node,
         imu_launch,
         ekf_node,
         joynode,

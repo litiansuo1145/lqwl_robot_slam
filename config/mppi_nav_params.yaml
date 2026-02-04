@@ -38,6 +38,12 @@ amcl:
     z_rand: 0.5
     z_short: 0.05
     scan_topic: "/scan"
+    set_initial_pose: true
+    initial_pose:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      yaw: 0.0  
 
 bt_navigator:
   ros__parameters:
@@ -145,10 +151,10 @@ controller_server:
       vx_std: 0.6
       vy_std: 0.2
       wz_std: 1.0
-      vx_max: 0.26           # [限制] 最大前进速度 (参考你之前的设定)
-      vx_min: -0.1           # 不准倒车
-      vy_max: 0.26           # [关键] 允许向左平移
-      vy_min: -0.26          # [关键] 允许向右平移
+      vx_max: 0.26           # [限制] 最大前进速度 
+      vx_min: -0.1           # [限制] 最大后退速度
+      vy_max: 0.26           # 允许向左平移
+      vy_min: -0.26          # 允许向右平移
       wz_max: 2.0          # 最大旋转速度
       iteration_count: 1
       prune_distance: 1.0
@@ -175,7 +181,7 @@ controller_server:
       CostCritic: # 避障相关
         enabled: true
         cost_power: 1
-        cost_weight: 10.0
+        cost_weight: 3.5
         critical_cost: 300.0
         collision_cost: 1000000.0
         consider_footprint: true
@@ -185,7 +191,7 @@ controller_server:
       PathAlignCritic: # 保持在路径上
         enabled: true
         cost_power: 1
-        cost_weight: 4.0
+        cost_weight: 16.0
         max_path_occupancy_ratio: 0.05
         trajectory_point_step: 3
         threshold_to_consider: 0.5
@@ -195,7 +201,7 @@ controller_server:
       PathFollowCritic: # 沿着路径走
         enabled: true
         cost_power: 1
-        cost_weight: 3.0
+        cost_weight: 6.0
         offset_from_furthest: 5
         threshold_to_consider: 1.4
 
@@ -225,8 +231,8 @@ local_costmap:
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 5.0
-        inflation_radius: 0.35
+        cost_scaling_factor: 15.0
+        inflation_radius: 0.35   #局部膨胀半径也拉小
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -283,8 +289,8 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 10.0
-        inflation_radius: 0.45
+        cost_scaling_factor: 15.0
+        inflation_radius: 0.35   # 全局代价地图膨胀半径设小一点
       always_send_full_costmap: True
 
 map_server:
@@ -292,7 +298,7 @@ map_server:
     use_sim_time: false
     # Overridden in launch by the "map" launch configuration or provided default value.
     # To use in yaml, provide full path to map below.
-    yaml_filename: "/home/ros2/ros2_ws/src/my_slam/maps/my_map.yaml"
+    yaml_filename: "/home/ros2/ros2_ws/src/my_slam/maps/my_map_z.yaml"
 
 map_saver:
   ros__parameters:
@@ -309,7 +315,7 @@ planner_server:
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 0.2
+      tolerance: 0.0
       use_astar: true
       allow_unknown: true
 

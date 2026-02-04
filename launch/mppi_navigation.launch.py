@@ -14,8 +14,8 @@ def generate_launch_description():
     pkg_witmotion = get_package_share_directory('witmotion_ros2')
     pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
 
-    # 2. 声明地图和参数路径（请确保你的地图文件名正确）
-    map_yaml_file = os.path.join(pkg_my_slam, 'maps', 'my_map.yaml')
+    # 2. 声明地图和参数路径
+    map_yaml_file = os.path.join(pkg_my_slam, 'maps', 'my_map_05.yaml')
     nav2_params_file = os.path.join(pkg_my_slam, 'config', 'mppi_nav_params.yaml')
 
     # 3. 机器人状态发布 (URDF)
@@ -31,7 +31,7 @@ def generate_launch_description():
         parameters=[{'robot_description': robot_desc}]
     )
 
-    # 4. C++ 驱动节点 (使用你指定的 dock_32car 端口)
+    # 4. C++ 驱动节点
     car_node = Node(
         package='py_pkg',
         executable='carnode',
@@ -40,7 +40,7 @@ def generate_launch_description():
         parameters=[{'port': '/dev/dock_32car', 'publish_tf': True, }]
     )
 
-    # 5. 雷达驱动 (使用你指定的 usb2_lidar 端口)
+    # 5. 雷达驱动 
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_sllidar, 'launch', 'rplidar_c1_launch.py')
@@ -52,7 +52,7 @@ def generate_launch_description():
         }.items()
     )
     
-    # 6. IMU 驱动 (使用你指定的 dock_imu 端口)
+    # 6. IMU 驱动 
     imu_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_witmotion, 'launch', 'witmotion.launch.py')
@@ -60,8 +60,7 @@ def generate_launch_description():
         launch_arguments={'port': '/dev/dock_imu'}.items()
     )
 
-    # 7. Nav2 导航堆栈 (包含 map_server, amcl 定位, planner, controller)
-    # 使用官方 bringup_launch.py 实现一键拉起
+    # 7. Nav2 导航堆栈 
     nav2_bringup_launch = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(
         os.path.join(pkg_nav2_bringup, 'launch', 'bringup_launch.py')
@@ -74,16 +73,33 @@ def generate_launch_description():
         'slam': 'False',
         'localization': 'True'
     }.items()
-)
-    # 8. 返回描述，依然建议使用延迟确保硬件稳定
+    )
+    topic_nav_node = Node(
+        package='py_pkg',              # 你的 Python 包名
+        executable='topic_nav_node',   # setup.py 里写的那个名字
+        name='topic_nav_node',         # 节点名
+        output='screen',               # 将日志打印到屏幕
+        parameters=[{'use_sim_time': False}] # 可选参数
+    )
+    #小智节点
+    xiaozhi_node = Node(
+        package='xiaozhi',              # 你的 Python 包名
+        executable='xiaozhi_node',   # setup.py 里写的那个名字
+        name='xiaozhi_node',         # 节点名
+        output='screen',               # 将日志打印到屏幕
+        parameters=[{'use_sim_time': False}] # 可选参数
+    )
+    # 8. 返回描述
     return LaunchDescription([
         rsp_node,
         car_node,
         lidar_launch,
         imu_launch,
-        # 延迟 3 秒启动 Nav2，等待地图加载和传感器同步
+        # 延迟 3 秒启动 Nav2
         TimerAction(
             period=3.0,
             actions=[nav2_bringup_launch]
-        )
+        ),
+        topic_nav_node,
+        xiaozhi_node
     ])
